@@ -78,7 +78,7 @@ cron.schedule('00 07 * * *', async () => {
 });
 
 // Dinner Meal
-cron.schedule('07 23 * * *', async () => {
+cron.schedule('59 23 * * *', async () => {
     console.log('Checking for meal notifications...');
   
     try {
