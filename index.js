@@ -35,18 +35,55 @@ webPush.setVapidDetails(
 
 // Route to subscribe to push notifications
 app.post('/subscribe', async (req, res) => {
-    const subscription = req.body;
-  
-    try {
-      // Save subscription to Firestore
+  const subscription = req.body;
+
+  try {
       const subscriptionsRef = db.collection('subscribedUsers');
+
+      // Check if a subscription with the same endpoint already exists
+      const existingSubscription = await subscriptionsRef
+          .where('endpoint', '==', subscription.endpoint)
+          .get();
+
+      if (!existingSubscription.empty) {
+          return res.status(409).json({ message: 'Subscription already exists for this device.' });
+      }
+
+      // Save new subscription to Firestore
       await subscriptionsRef.add(subscription);
-  
+
       res.status(201).json({ message: 'Subscription saved!' });
-    } catch (error) {
+  } catch (error) {
       res.status(500).json({ message: 'Error saving subscription', error });
+  }
+});
+
+
+// Route to unsubscribe (delete a subscription)
+app.post('/unsubscribe', async (req, res) => {
+  const { email } = req.body;  // Assuming you're using email to identify the user
+
+  try {
+    // Reference to the subscribedUsers collection
+    const subscriptionsRef = db.collection('subscribedUsers');
+
+    // Query for the document where the email matches
+    const snapshot = await subscriptionsRef.where('email', '==', email).get();
+
+    if (snapshot.empty) {
+      return res.status(404).json({ message: 'No subscription found for this email.' });
     }
-  });
+
+  // Delete all matching documents (should be one in this case)
+  const deletePromises = snapshot.docs.map(doc => doc.ref.delete());
+  await Promise.all(deletePromises);
+
+
+    res.status(200).json({ message: 'Subscription deleted successfully!' });
+  } catch (error) {
+    res.status(500).json({ message: 'Error deleting subscription', error });
+  }
+});
 
 
 // Function to send a notification
@@ -78,7 +115,7 @@ cron.schedule('00 07 * * *', async () => {
 });
 
 // Dinner Meal
-cron.schedule('45 18 * * *', async () => {
+cron.schedule('29 19 * * *', async () => {
     console.log('Checking for meal notifications...');
   
     try {
