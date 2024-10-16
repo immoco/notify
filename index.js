@@ -36,54 +36,58 @@ webPush.setVapidDetails(
 // Route to subscribe to push notifications
 app.post('/subscribe', async (req, res) => {
   const subscription = req.body;
+  console.log(subscription);
 
   try {
       const subscriptionsRef = db.collection('subscribedUsers');
 
       // Check if a subscription with the same endpoint already exists
-      const existingSubscription = await subscriptionsRef
-          .where('endpoint', '==', subscription.endpoint)
-          .get();
+      // const existingSubscription = await subscriptionsRef
+      //     .where('subscription.endpoint', '==', subscription.endpoint)
+      //     .get();
 
-      if (!existingSubscription.empty) {
-          return res.status(409).json({ message: 'Subscription already exists for this device.' });
-      }
+      // if (!existingSubscription.empty) {
+      //     return res.status(409).json({ message: 'Subscription already exists for this device.' });
+      // }
 
       // Save new subscription to Firestore
       await subscriptionsRef.add(subscription);
 
       res.status(201).json({ message: 'Subscription saved!' });
   } catch (error) {
+      console.log(error)
       res.status(500).json({ message: 'Error saving subscription', error });
   }
 });
 
 
-// Route to unsubscribe (delete a subscription)
 app.post('/unsubscribe', async (req, res) => {
-  const { email } = req.body;  // Assuming you're using email to identify the user
+  const { email } = req.body;
 
   try {
-    // Reference to the subscribedUsers collection
-    const subscriptionsRef = db.collection('subscribedUsers');
+      const subscriptionsRef = db.collection('subscribedUsers');
 
-    // Query for the document where the email matches
-    const snapshot = await subscriptionsRef.where('email', '==', email).get();
+      // Find subscription by endpoint
+      const snapshot = await subscriptionsRef
+          .where('email', '==', email)
+          .get();
 
-    if (snapshot.empty) {
-      return res.status(404).json({ message: 'No subscription found for this email.' });
-    }
+      if (snapshot.empty) {
+          return res.status(404).json({ message: 'Subscription not found' });
+      }
 
-  // Delete all matching documents (should be one in this case)
-  const deletePromises = snapshot.docs.map(doc => doc.ref.delete());
-  await Promise.all(deletePromises);
+      // Delete all matching subscriptions
+      const deletePromises = snapshot.docs.map(doc => doc.ref.delete());
+      await Promise.all(deletePromises);
 
-
-    res.status(200).json({ message: 'Subscription deleted successfully!' });
+      res.status(200).json({ message: 'Subscription removed!' });
   } catch (error) {
-    res.status(500).json({ message: 'Error deleting subscription', error });
+    console.log("Un",error)
+      console.error('Error unsubscribing:', error);
+      res.status(500).json({ message: 'Error unsubscribing', error });
   }
 });
+
 
 
 // Function to send a notification
@@ -95,7 +99,7 @@ const sendNotification = (subscription, data) => {
 };
 
 // Morning Meal
-cron.schedule('00 07 * * *', async () => {
+cron.schedule('30 01 * * *', async () => {
   console.log('Checking for meal notifications...');
 
   try {
@@ -105,7 +109,27 @@ cron.schedule('00 07 * * *', async () => {
     snapshot.forEach(doc => {
       const user = doc.data();
       // Check if it's time for breakfast, lunch, or dinner
-      const data = { title: 'Breakfast Reminder', body: 'It’s time for breakfast!' };
+      const data = { title: 'Breakfast Reminder', body: `Hello ${user.displayName}, It’s time for breakfast!` };
+      sendNotification(user.subscription, data);
+    });
+
+  } catch (error) {
+    console.error('Error checking meal times:', error);
+  }
+});
+
+// Lunch Meal
+cron.schedule('30 06 * * *', async () => {
+  console.log('Checking for meal notifications...');
+
+  try {
+    const usersRef = db.collection('subscribedUsers');
+    const snapshot = await usersRef.get();
+
+    snapshot.forEach(doc => {
+      const user = doc.data();
+      // Check if it's time for breakfast, lunch, or dinner
+      const data = { title: 'Lunch Reminder', body: `Hello ${user.displayName}, It’s time for lunch!` };
       sendNotification(user.subscription, data);
     });
 
@@ -115,7 +139,7 @@ cron.schedule('00 07 * * *', async () => {
 });
 
 // Dinner Meal
-cron.schedule('29 19 * * *', async () => {
+cron.schedule('30 13 * * *', async () => {
     console.log('Checking for meal notifications...');
   
     try {
