@@ -42,7 +42,7 @@ app.post('/subscribe', async (req, res) => {
 
       // Check if a subscription with the same endpoint already exists
       const existingSubscription = await subscriptionsRef
-          .where('subscription.endpoint', '==', subscriptionData.subscription.endpoint).where('device_id', '==', subscriptionData.device_id)
+          .where('device_id', '==', subscriptionData.device_id)
           .get();
 
       if (!existingSubscription.empty) {
