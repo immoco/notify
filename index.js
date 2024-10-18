@@ -35,23 +35,30 @@ webPush.setVapidDetails(
 
 // Route to subscribe to push notifications
 app.post('/subscribe', async (req, res) => {
-  const subscription = req.body;
-  console.log(subscription);
+  const subscriptionData = req.body;
 
   try {
       const subscriptionsRef = db.collection('subscribedUsers');
 
       // Check if a subscription with the same endpoint already exists
-      // const existingSubscription = await subscriptionsRef
-      //     .where('subscription.endpoint', '==', subscription.endpoint)
-      //     .get();
+      const existingSubscription = await subscriptionsRef
+          .where('subscription.endpoint', '==', subscriptionData.subscription.endpoint).where('device_id', '==', subscriptionData.device_id)
+          .get();
 
-      // if (!existingSubscription.empty) {
-      //     return res.status(409).json({ message: 'Subscription already exists for this device.' });
-      // }
+      if (!existingSubscription.empty) {
+          // Update remindState for each document
+      const updatePromises = existingSubscription.docs.map(doc => {
+        return doc.ref.update({ 'reminder_state': true }); // Update the remindState field
+      });
+
+    // Wait for all update operations to complete
+       await Promise.all(updatePromises);
+
+      return res.status(200).json({ message: 'Subscription revived for this device.' });
+      }
 
       // Save new subscription to Firestore
-      await subscriptionsRef.add(subscription);
+      await subscriptionsRef.add(subscriptionData);
 
       res.status(201).json({ message: 'Subscription saved!' });
   } catch (error) {
@@ -62,23 +69,27 @@ app.post('/subscribe', async (req, res) => {
 
 
 app.post('/unsubscribe', async (req, res) => {
-  const { email } = req.body;
+  const deviceData = req.body;
 
   try {
       const subscriptionsRef = db.collection('subscribedUsers');
 
       // Find subscription by endpoint
       const snapshot = await subscriptionsRef
-          .where('email', '==', email)
+          .where('device_id', '==', deviceData.device_id)
           .get();
 
       if (snapshot.empty) {
           return res.status(404).json({ message: 'Subscription not found' });
       }
 
-      // Delete all matching subscriptions
-      const deletePromises = snapshot.docs.map(doc => doc.ref.delete());
-      await Promise.all(deletePromises);
+      // Update remindState for each document
+      const updatePromises = snapshot.docs.map(doc => {
+        return doc.ref.update({ 'reminder_state': false }); // Update the remindState field
+      });
+
+    // Wait for all update operations to complete
+    await Promise.all(updatePromises);
 
       res.status(200).json({ message: 'Subscription removed!' });
   } catch (error) {
@@ -104,7 +115,7 @@ cron.schedule('30 01 * * *', async () => {
 
   try {
     const usersRef = db.collection('subscribedUsers');
-    const snapshot = await usersRef.get();
+    const snapshot = await usersRef.where('reminder_state', '==', true).get();
 
     snapshot.forEach(doc => {
       const user = doc.data();
@@ -119,12 +130,12 @@ cron.schedule('30 01 * * *', async () => {
 });
 
 // Lunch Meal
-cron.schedule('30 06 * * *', async () => {
+cron.schedule('30 6 * * *', async () => {
   console.log('Checking for meal notifications...');
 
   try {
     const usersRef = db.collection('subscribedUsers');
-    const snapshot = await usersRef.get();
+    const snapshot = await usersRef.where('reminder_state', '==', true).get();
 
     snapshot.forEach(doc => {
       const user = doc.data();
@@ -144,7 +155,8 @@ cron.schedule('30 13 * * *', async () => {
   
     try {
       const usersRef = db.collection('subscribedUsers');
-      const snapshot = await usersRef.get();
+      const snapshot = await usersRef.where('reminder_state', '==', true).get();
+
   
       snapshot.forEach(doc => {
         const user = doc.data();
