@@ -106,7 +106,10 @@ const sendNotification = (subscription, data) => {
   const payload = JSON.stringify(data);
   webPush.sendNotification(subscription, payload)
     .then(() => console.log('Notification sent successfully'))
-    .catch(error => console.error('Error sending notification:', error));
+    .catch(error => {
+      console.log(error);
+      console.error('Error sending notification:', error)
+    });
 };
 
 // Morning Meal
@@ -161,7 +164,6 @@ cron.schedule('*/1 * * * *', async () => {
       snapshot.forEach(doc => {
         const user = doc.data();
         // Check if it's time for breakfast, lunch, or dinner
-        console.log(user)
         const data = { title: 'Dinner Reminder', body: `Hello ${user.displayName} It’s time for dinner!` };
         sendNotification(user.subscription, data);
       });
