@@ -153,7 +153,7 @@ cron.schedule('30 6 * * *', async () => {
 });
 
 // Dinner Meal
-cron.schedule('*/1 * * * *', async () => {
+cron.schedule('30 14 * * *', async () => {
     console.log('Checking for meal notifications...');
   
     try {
