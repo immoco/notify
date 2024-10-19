@@ -99,82 +99,28 @@ app.post('/unsubscribe', async (req, res) => {
   }
 });
 
+const tz = {
+  scheduled: true,
+  timezone: "Asia/Kolkata"
+}
 
+const sendMealNotification = async (mealType, reminderTime) => {
+    console.log(`Checking for ${mealType} notifications...`);
+    const usersRef = db.collection('subscribedUsers');
+    const snapshot = await usersRef.where('reminder_state', '==', true).get();
 
-// Function to send a notification
-const sendNotification = (subscription, data) => {
-  const payload = JSON.stringify(data);
-  webPush.sendNotification(subscription, payload)
-    .then(() => console.log('Notification sent successfully'))
-    .catch(error => {
-      console.log(error);
-      console.error('Error sending notification:', error)
+    snapshot.forEach(doc => {
+        const user = doc.data();
+        const data = { title: `${mealType} Reminder`, body: `Hello ${user.displayName}, It’s time for ${mealType.toLowerCase()}!` };
+        sendNotification(user.subscription, data);
     });
 };
 
-// Morning Meal
-cron.schedule('30 01 * * *', async () => {
-  console.log('Checking for meal notifications...');
+cron.schedule('30 01 * * *', () => {sendMealNotification('Breakfast')}, tz);
+cron.schedule('16 12 * * *', () => {sendMealNotification('Lunch')},tz);
+cron.schedule('32 21 * * *', () => {sendMealNotification('Dinner')},tz);
 
-  try {
-    const usersRef = db.collection('subscribedUsers');
-    const snapshot = await usersRef.where('reminder_state', '==', true).get();
 
-    snapshot.forEach(doc => {
-      const user = doc.data();
-      // Check if it's time for breakfast, lunch, or dinner
-      const data = { title: 'Breakfast Reminder', body: `Hello ${user.displayName}, It’s time for breakfast!` };
-      sendNotification(user.subscription, data);
-    });
-
-  } catch (error) {
-    console.error('Error checking meal times:', error);
-  }
-});
-
-// Lunch Meal
-cron.schedule('30 6 * * *', async () => {
-  console.log('Checking for meal notifications...');
-
-  try {
-    const usersRef = db.collection('subscribedUsers');
-    const snapshot = await usersRef.where('reminder_state', '==', true).get();
-
-    snapshot.forEach(doc => {
-      const user = doc.data();
-      // Check if it's time for breakfast, lunch, or dinner
-      const data = { title: 'Lunch Reminder', body: `Hello ${user.displayName}, It’s time for lunch!` };
-      sendNotification(user.subscription, data);
-    });
-
-  } catch (error) {
-    console.error('Error checking meal times:', error);
-  }
-});
-
-// Dinner Meal
-cron.schedule('25 21 * * *', async () => {
-    console.log('Checking for meal notifications...');
-  
-    try {
-      const usersRef = db.collection('subscribedUsers');
-      const snapshot = await usersRef.where('reminder_state', '==', true).get();
-
-  
-      snapshot.forEach(doc => {
-        const user = doc.data();
-        // Check if it's time for breakfast, lunch, or dinner
-        const data = { title: 'Dinner Reminder', body: `Hello ${user.displayName} It’s time for dinner!` };
-        sendNotification(user.subscription, data);
-      });
-  
-    } catch (error) {
-      console.error('Error checking meal times:', error);
-    }
-  }, {
-  scheduled: true,
-  timezone: "Asia/Kolkata"
-});
 
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);
