@@ -153,7 +153,7 @@ cron.schedule('30 6 * * *', async () => {
 });
 
 // Dinner Meal
-cron.schedule('30 14 * * *', async () => {
+cron.schedule('25 21 * * *', async () => {
     console.log('Checking for meal notifications...');
   
     try {
@@ -171,7 +171,10 @@ cron.schedule('30 14 * * *', async () => {
     } catch (error) {
       console.error('Error checking meal times:', error);
     }
-  });
+  }, {
+  scheduled: true,
+  timezone: "Asia/Kolkata"
+});
 
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);
