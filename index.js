@@ -124,7 +124,7 @@ const sendMealNotification = async (mealType, reminderTime) => {
     });
 };
 
-cron.schedule('*/2 * * * *', () => {sendMealNotification('Breakfast')}, tz);
+cron.schedule('00 10 * * *', () => {sendMealNotification('Breakfast')}, tz);
 cron.schedule('00 12 * * *', () => {sendMealNotification('Lunch')},tz);
 cron.schedule('00 19 * * *', () => {sendMealNotification('Dinner')},tz);
 
