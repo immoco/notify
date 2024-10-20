@@ -104,6 +104,14 @@ const tz = {
   timezone: "Asia/Kolkata"
 }
 
+// Function to send a notification
+const sendNotification = (subscription, data) => {
+  const payload = JSON.stringify(data);
+  webPush.sendNotification(subscription, payload)
+    .then(() => console.log('Notification sent successfully'))
+    .catch(error => console.error('Error sending notification:', error));
+};
+
 const sendMealNotification = async (mealType, reminderTime) => {
     console.log(`Checking for ${mealType} notifications...`);
     const usersRef = db.collection('subscribedUsers');
